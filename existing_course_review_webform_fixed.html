@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Existing Course Review — Vanilla HTML (Fixed)</title>
+  <!-- Tailwind CDN for styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @media print {
+      header, .no-print { display: none !important; }
+      body { background: white; }
+      .shadow-sm, .shadow, .shadow-md { box-shadow: none !important; }
+      .rounded-2xl { border-radius: 0 !important; }
+    }
+    dialog::backdrop { background: rgba(0,0,0,0.35); }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
+    <header class="flex items-center justify-between gap-3 flex-wrap">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-semibold tracking-tight">Existing Course Review — Webform</h1>
+        <p class="text-sm text-gray-500">Standalone HTML + JS version (no React). Saves to your browser and can export JSON.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="printBtn" class="border rounded-lg px-3 py-2 text-sm">Print</button>
+        <button id="downloadBtn" class="border rounded-lg px-3 py-2 text-sm">Download JSON</button>
+        <button id="clearBtn" class="border rounded-lg px-3 py-2 text-sm">Clear</button>
+        <button id="validateBtn" class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">Validate</button>
+      </div>
+    </header>
+
+    <form id="ecrForm" class="space-y-6">
+      <!-- 1) Course Identifiers -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">1) Course Identifiers</h2>
+          <p class="text-sm text-gray-500 mt-1">Keep IDs consistent with LMS naming.</p>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Course Title *</label>
+              <input id="ident_title" type="text" placeholder="e.g., Safeguarding Essentials" class="w-full border rounded-lg px-3 py-2" />
+              <p id="err_title" class="text-sm text-red-600 hidden"></p>
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Course ID / Code</label>
+              <input id="ident_code" type="text" placeholder="e.g., SG-ESS-001" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+          </div>
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">LMS Link (URL)</label>
+              <input id="ident_url" type="url" placeholder="https://lms.example.com/course/..." class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Current Version</label>
+              <input id="ident_version" type="text" placeholder="v1.0" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+          </div>
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Delivery Mode *</label>
+              <select id="ident_delivery" class="w-full border rounded-lg px-3 py-2">
+                <option value="eLearning">eLearning</option>
+                <option value="vILT">vILT</option>
+                <option value="ILT">ILT</option>
+                <option value="Blended">Blended</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Length / Duration *</label>
+              <input id="ident_length" type="text" placeholder="e.g., 45 min" class="w-full border rounded-lg px-3 py-2" />
+              <p id="err_length" class="text-sm text-red-600 hidden"></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2) Objectives -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">2) Learning Objectives</h2>
+          <p class="text-sm text-gray-500 mt-1">Use action verbs; align to assessment.</p>
+        </div>
+        <div class="p-4 space-y-3">
+          <div id="objectivesList" class="space-y-2"></div>
+          <button type="button" id="addObjective" class="border rounded-lg px-3 py-2 text-sm">Add Objective</button>
+          <p id="err_objectives" class="text-sm text-red-600 hidden"></p>
+        </div>
+      </section>
+
+      <!-- 3) Content Summary -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">3) Content Summary</h2>
+          <p class="text-sm text-gray-500 mt-1">2–3 sentences describing scope &amp; key topics.</p>
+        </div>
+        <div class="p-4">
+          <textarea id="summary" rows="4" placeholder="Briefly describe the course content..." class="w-full border rounded-lg px-3 py-2"></textarea>
+        </div>
+      </section>
+
+      <!-- 4) Attributes -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">4) Course Attributes — Checklist</h2>
+          <p class="text-sm text-gray-500 mt-1">Tick all that apply; mark N/A in notes if not relevant.</p>
+        </div>
+        <div class="p-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Accessibility -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Accessibility</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="acc_captions" class="w-4 h-4"> <span>Captions &amp; transcripts for media</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="acc_alt" class="w-4 h-4"> <span>Alt text for images / decorative marked</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="acc_keyboard" class="w-4 h-4"> <span>Keyboard navigation &amp; visible focus</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="acc_contrast" class="w-4 h-4"> <span>Colour contrast &amp; no colour-only meaning</span></label>
+          </div>
+
+          <!-- Interactivity -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Interactivity</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="int_checks" class="w-4 h-4"> <span>Regular knowledge checks or practice activities</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="int_scenarios" class="w-4 h-4"> <span>Scenarios/examples relevant to roles</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="int_feedback" class="w-4 h-4"> <span>Clear feedback on checks (guidance)</span></label>
+          </div>
+
+          <!-- Formatting -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Formatting &amp; Consistency</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="fmt_headings" class="w-4 h-4"> <span>Headings, lists, spacing consistent</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="fmt_branding" class="w-4 h-4"> <span>Fonts and brand styles applied</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="fmt_plain" class="w-4 h-4"> <span>Plain, concise language; no jargon</span></label>
+          </div>
+
+          <!-- UX -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Navigation &amp; UX</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="ux_flow" class="w-4 h-4"> <span>Logical flow; clear next/previous</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="ux_progress" class="w-4 h-4"> <span>Progress/completion indicator present</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="ux_mobile" class="w-4 h-4"> <span>Works on mobile and desktop</span></label>
+          </div>
+
+          <!-- Technical -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Technical</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="tech_loads" class="w-4 h-4"> <span>SCORM/xAPI package loads without errors</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="tech_resume" class="w-4 h-4"> <span>Bookmarking/resume works</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="tech_reporting" class="w-4 h-4"> <span>Reporting to LMS/LRS correct (score, status)</span></label>
+          </div>
+
+          <!-- Assessment -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Assessment</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="asm_mapping" class="w-4 h-4"> <span>Questions map to learning objectives</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="asm_passmark" class="w-4 h-4"> <span>Pass mark &amp; attempts configured</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="asm_random" class="w-4 h-4"> <span>Randomisation/banks (if used) working</span></label>
+          </div>
+
+          <!-- Branding & Compliance -->
+          <div class="space-y-3">
+            <h4 class="font-medium">Branding &amp; Compliance</h4>
+            <label class="flex items-center gap-3"><input type="checkbox" id="brd_brand" class="w-4 h-4"> <span>YMCA SA branding correct</span></label>
+            <label class="flex items-center gap-3"><input type="checkbox" id="brd_policy" class="w-4 h-4"> <span>Policy/safeguarding references current</span></label>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5) Proposed Changes -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">5) Proposed Changes — Tracking</h2>
+          <p class="text-sm text-gray-500 mt-1">Add only changes you plan to action this cycle.</p>
+        </div>
+        <div class="p-4">
+          <div class="overflow-x-auto rounded-xl border">
+            <table class="w-full text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="text-left p-2 w-[38%]">Description of Proposed Change</th>
+                  <th class="text-left p-2">Owner</th>
+                  <th class="text-left p-2">Due For (Date)</th>
+                  <th class="text-left p-2">Comments</th>
+                  <th class="text-left p-2">Status</th>
+                  <th class="text-left p-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="changesBody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="addChange" class="mt-3 border rounded-lg px-3 py-2 text-sm">Add Change</button>
+        </div>
+      </section>
+
+      <!-- 6) Ownership -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">6) Ownership</h2>
+          <p class="text-sm text-gray-500 mt-1">Accountable owner and subject expert details.</p>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Course Owner</label>
+              <input id="own_courseOwner" type="text" placeholder="Name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="own_courseOwnerContact" type="text" placeholder="Email or phone" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Subject Matter Expert (SME)</label>
+              <input id="own_sme" type="text" placeholder="Name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="own_smeContact" type="text" placeholder="Email or phone" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+          </div>
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">L&amp;D Representative</label>
+              <input id="own_lnd" type="text" placeholder="Name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="own_lndContact" type="text" placeholder="Email or phone" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Next Review Date</label>
+              <input id="nextReviewDate" type="date" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 7) Sign-off -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">7) Sign-off</h2>
+          <p class="text-sm text-gray-500 mt-1">Confirm information and approve listed changes.</p>
+        </div>
+        <div class="p-4">
+          <div class="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-3">
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">Course Owner Signature / Name</label>
+              <input id="sign_owner" type="text" placeholder="Type name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="sign_ownerDate" type="date" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">SME Signature / Name</label>
+              <input id="sign_sme" type="text" placeholder="Type name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="sign_smeDate" type="date" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+            <div class="space-y-2">
+              <label class="block text-sm font-medium">L&amp;D Signature / Name</label>
+              <input id="sign_lnd" type="text" placeholder="Type name" class="w-full border rounded-lg px-3 py-2" />
+              <input id="sign_lndDate" type="date" class="w-full border rounded-lg px-3 py-2" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 8) Optional Notes -->
+      <section class="rounded-2xl shadow-sm bg-white">
+        <div class="p-4 border-b">
+          <h2 class="text-xl">8) Optional Notes</h2>
+        </div>
+        <div class="p-4">
+          <textarea id="notes" rows="3" placeholder="Any additional notes..." class="w-full border rounded-lg px-3 py-2"></textarea>
+        </div>
+      </section>
+
+      <!-- Footer Actions -->
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button type="button" id="clearBtn2" class="border rounded-lg px-3 py-2 text-sm">Clear</button>
+        <button type="button" id="downloadBtn2" class="border rounded-lg px-3 py-2 text-sm">Download JSON</button>
+        <button type="button" id="validateBtn2" class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">Validate</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Resume Draft Modal -->
+  <dialog id="resumeDialog" class="rounded-xl p-0 w-[32rem] max-w-[90vw]">
+    <form method="dialog">
+      <div class="p-4 border-b">
+        <div class="text-lg font-semibold">Resume saved draft?</div>
+        <p class="text-sm text-gray-500 mt-1">A previously saved draft was found in this browser. Resume editing it, or start a new blank form?</p>
+      </div>
+      <div class="p-4 space-y-2 text-sm text-gray-600" id="resumeInfo"></div>
+      <div class="p-4 flex items-center justify-between gap-2 bg-gray-50">
+        <button value="new" class="border rounded-lg px-3 py-2 text-sm">Start New</button>
+        <button value="resume" class="bg-blue-600 text-white rounded-lg px-3 py-2 text-sm">Resume Draft</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    // ---- Robust clone helper (works even if structuredClone is unavailable) ----
+    const deepClone = (obj) => {
+      if (typeof structuredClone === "function") return structuredClone(obj);
+      try { return JSON.parse(JSON.stringify(obj)); } catch { return obj; }
+    };
+
+    const STORAGE_KEY = "ec_review_form";
+
+    const defaultData = {
+      identifiers: { title: "", code: "", url: "", deliveryMode: "eLearning", length: "30 min", version: "v1.0" },
+      objectives: [{ text: "" }],
+      summary: "",
+      attributes: {
+        accessibility: { captions: false, altText: false, keyboard: false, contrast: false },
+        interactivity: { checks: false, scenarios: false, feedback: false },
+        formatting: { headings: false, branding: false, plainLanguage: false },
+        ux: { flow: false, progress: false, mobile: false },
+        technical: { loads: false, resume: false, reporting: false },
+        assessment: { mapping: false, passmark: false, randomisation: false },
+        branding: { ymcaBrand: false, policyCurrent: false }
+      },
+      changes: [{ description: "", owner: "", due: "", comments: "", status: "Proposed" }],
+      ownership: { courseOwner: "", courseOwnerContact: "", sme: "", smeContact: "", lnd: "", lndContact: "" },
+      signoff: { ownerSigned: "", ownerDate: "", smeSigned: "", smeDate: "", lndSigned: "", lndDate: "" },
+      notes: "",
+      nextReviewDate: ""
+    };
+
+    function migrateStatusesIfNeeded(data) {
+      const statusMap = { "Planned": "Proposed", "In-Progress": "Actioned", "Ready for QA": "Approved", "Done": "Actioned" };
+      if (data && Array.isArray(data.changes)) {
+        data.changes = data.changes.map(c => ({
+          ...c,
+          status: statusMap[c?.status] ?? c?.status ?? "Proposed",
+          comments: typeof c?.comments === "string" ? c.comments : ""
+        }));
+      }
+      return data;
+    }
+
+    function parseStoredForm(raw) {
+      if (!raw) return defaultData;
+      try {
+        const parsed = migrateStatusesIfNeeded(JSON.parse(raw));
+        if (!parsed.identifiers || !parsed.objectives) throw new Error("bad shape");
+        return parsed;
+      } catch (e) {
+        console.warn("Failed to parse stored form, using defaults", e);
+        return defaultData;
+      }
+    }
+
+    function hasSavedDraft() {
+      try { return !!localStorage.getItem(STORAGE_KEY); } catch { return false; }
+    }
+
+    // --- DOM helpers ---
+    const qs = (s, r=document) => r.querySelector(s);
+    const qsa = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+    // --- Renderers ---
+    function renderObjectives(objs) {
+      const list = qs("#objectivesList");
+      list.innerHTML = "";
+      objs.forEach((o, i) => {
+        const row = document.createElement("div");
+        row.className = "flex gap-2 items-start";
+        row.innerHTML = `
+          <input type="text" class="flex-1 border rounded-lg px-3 py-2" placeholder="Objective ${i + 1}" value="${o.text ?? ""}" data-idx="${i}" />
+          <button type="button" class="border rounded-lg px-3 py-2 text-sm removeObjective">Remove</button>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function renderChanges(changes) {
+      const tbody = qs("#changesBody");
+      tbody.innerHTML = "";
+      changes.forEach((c, i) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td class="p-2 align-top">
+            <input type="text" class="w-full border rounded-lg px-2 py-1" placeholder="e.g., Replace outdated scenario in Module 2" value="${c.description ?? ""}" data-field="description" data-idx="${i}" />
+            <p class="text-xs text-red-600 mt-1 hidden" data-err="desc-${i}"></p>
+          </td>
+          <td class="p-2 align-top"><input type="text" class="w-full border rounded-lg px-2 py-1" placeholder="Name" value="${c.owner ?? ""}" data-field="owner" data-idx="${i}" /></td>
+          <td class="p-2 align-top"><input type="date" class="w-full border rounded-lg px-2 py-1" value="${c.due ?? ""}" data-field="due" data-idx="${i}" /></td>
+          <td class="p-2 align-top"><input type="text" class="w-full border rounded-lg px-2 py-1" placeholder="Optional notes / context" value="${c.comments ?? ""}" data-field="comments" data-idx="${i}" /></td>
+          <td class="p-2 align-top">
+            <select class="w-full border rounded-lg px-2 py-1" data-field="status" data-idx="${i}">
+              ${["Proposed","Approved","Actioned","Further Changes Required"].map(s => `<option value="${s}" ${(c.status===s)?"selected":""}>${s}</option>`).join("")}
+            </select>
+          </td>
+          <td class="p-2 align-top text-right"><button type="button" class="border rounded-lg px-3 py-1 text-sm removeChange" data-idx="${i}">Remove</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- State ---
+    let autosaveEnabled = false;
+    let data = deepClone(defaultData); // safer clone
+
+    function setFormFromData(d) {
+      data = deepClone(d);
+      // identifiers
+      qs("#ident_title").value = d.identifiers.title || "";
+      qs("#ident_code").value = d.identifiers.code || "";
+      qs("#ident_url").value = d.identifiers.url || "";
+      qs("#ident_delivery").value = d.identifiers.deliveryMode || "eLearning";
+      qs("#ident_length").value = d.identifiers.length || "";
+      qs("#ident_version").value = d.identifiers.version || "";
+      // summary
+      qs("#summary").value = d.summary || "";
+      // attributes
+      qs("#acc_captions").checked = !!d.attributes.accessibility.captions;
+      qs("#acc_alt").checked = !!d.attributes.accessibility.altText;
+      qs("#acc_keyboard").checked = !!d.attributes.accessibility.keyboard;
+      qs("#acc_contrast").checked = !!d.attributes.accessibility.contrast;
+      qs("#int_checks").checked = !!d.attributes.interactivity.checks;
+      qs("#int_scenarios").checked = !!d.attributes.interactivity.scenarios;
+      qs("#int_feedback").checked = !!d.attributes.interactivity.feedback;
+      qs("#fmt_headings").checked = !!d.attributes.formatting.headings;
+      qs("#fmt_branding").checked = !!d.attributes.formatting.branding;
+      qs("#fmt_plain").checked = !!d.attributes.formatting.plainLanguage;
+      qs("#ux_flow").checked = !!d.attributes.ux.flow;
+      qs("#ux_progress").checked = !!d.attributes.ux.progress;
+      qs("#ux_mobile").checked = !!d.attributes.ux.mobile;
+      qs("#tech_loads").checked = !!d.attributes.technical.loads;
+      qs("#tech_resume").checked = !!d.attributes.technical.resume;
+      qs("#tech_reporting").checked = !!d.attributes.technical.reporting;
+      qs("#asm_mapping").checked = !!d.attributes.assessment.mapping;
+      qs("#asm_passmark").checked = !!d.attributes.assessment.passmark;
+      qs("#asm_random").checked = !!d.attributes.assessment.randomisation;
+      qs("#brd_brand").checked = !!d.attributes.branding.ymcaBrand;
+      qs("#brd_policy").checked = !!d.attributes.branding.policyCurrent;
+      // ownership
+      qs("#own_courseOwner").value = d.ownership.courseOwner || "";
+      qs("#own_courseOwnerContact").value = d.ownership.courseOwnerContact || "";
+      qs("#own_sme").value = d.ownership.sme || "";
+      qs("#own_smeContact").value = d.ownership.smeContact || "";
+      qs("#own_lnd").value = d.ownership.lnd || "";
+      qs("#own_lndContact").value = d.ownership.lndContact || "";
+      // signoff
+      qs("#sign_owner").value = d.signoff.ownerSigned || "";
+      qs("#sign_ownerDate").value = d.signoff.ownerDate || "";
+      qs("#sign_sme").value = d.signoff.smeSigned || "";
+      qs("#sign_smeDate").value = d.signoff.smeDate || "";
+      qs("#sign_lnd").value = d.signoff.lndSigned || "";
+      qs("#sign_lndDate").value = d.signoff.lndDate || "";
+      // other
+      qs("#notes").value = d.notes || "";
+      qs("#nextReviewDate").value = d.nextReviewDate || "";
+
+      renderObjectives(d.objectives && d.objectives.length ? d.objectives : [{text:""}]);
+      renderChanges(d.changes && d.changes.length ? d.changes : [{ description: "", owner: "", due: "", comments: "", status: "Proposed" }]);
+    }
+
+    function getFormData() {
+      const d = deepClone(defaultData);
+      // identifiers
+      d.identifiers.title = qs("#ident_title").value.trim();
+      d.identifiers.code = qs("#ident_code").value.trim();
+      d.identifiers.url = qs("#ident_url").value.trim();
+      d.identifiers.deliveryMode = qs("#ident_delivery").value;
+      d.identifiers.length = qs("#ident_length").value.trim();
+      d.identifiers.version = qs("#ident_version").value.trim();
+      // summary
+      d.summary = qs("#summary").value.trim();
+      // attributes
+      d.attributes.accessibility.captions = qs("#acc_captions").checked;
+      d.attributes.accessibility.altText = qs("#acc_alt").checked;
+      d.attributes.accessibility.keyboard = qs("#acc_keyboard").checked;
+      d.attributes.accessibility.contrast = qs("#acc_contrast").checked;
+      d.attributes.interactivity.checks = qs("#int_checks").checked;
+      d.attributes.interactivity.scenarios = qs("#int_scenarios").checked;
+      d.attributes.interactivity.feedback = qs("#int_feedback").checked;
+      d.attributes.formatting.headings = qs("#fmt_headings").checked;
+      d.attributes.formatting.branding = qs("#fmt_branding").checked;
+      d.attributes.formatting.plainLanguage = qs("#fmt_plain").checked;
+      d.attributes.ux.flow = qs("#ux_flow").checked;
+      d.attributes.ux.progress = qs("#ux_progress").checked;
+      d.attributes.ux.mobile = qs("#ux_mobile").checked;
+      d.attributes.technical.loads = qs("#tech_loads").checked;
+      d.attributes.technical.resume = qs("#tech_resume").checked;
+      d.attributes.technical.reporting = qs("#tech_reporting").checked;
+      d.attributes.assessment.mapping = qs("#asm_mapping").checked;
+      d.attributes.assessment.passmark = qs("#asm_passmark").checked;
+      d.attributes.assessment.randomisation = qs("#asm_random").checked;
+      d.attributes.branding.ymcaBrand = qs("#brd_brand").checked;
+      d.attributes.branding.policyCurrent = qs("#brd_policy").checked;
+      // objectives
+      d.objectives = qsa("#objectivesList input").map(inp => ({ text: inp.value.trim() }));
+      // changes
+      d.changes = qsa("#changesBody tr").map((tr, i) => {
+        const get = (sel) => tr.querySelector(sel);
+        return {
+          description: get('input[data-field="description"]').value.trim(),
+          owner: get('input[data-field="owner"]').value.trim(),
+          due: get('input[data-field="due"]').value.trim(),
+          comments: get('input[data-field="comments"]').value.trim(),
+          status: get('select[data-field="status"]').value
+        };
+      });
+      // ownership
+      d.ownership.courseOwner = qs("#own_courseOwner").value.trim();
+      d.ownership.courseOwnerContact = qs("#own_courseOwnerContact").value.trim();
+      d.ownership.sme = qs("#own_sme").value.trim();
+      d.ownership.smeContact = qs("#own_smeContact").value.trim();
+      d.ownership.lnd = qs("#own_lnd").value.trim();
+      d.ownership.lndContact = qs("#own_lndContact").value.trim();
+      // signoff
+      d.signoff.ownerSigned = qs("#sign_owner").value.trim();
+      d.signoff.ownerDate = qs("#sign_ownerDate").value;
+      d.signoff.smeSigned = qs("#sign_sme").value.trim();
+      d.signoff.smeDate = qs("#sign_smeDate").value;
+      d.signoff.lndSigned = qs("#sign_lnd").value.trim();
+      d.signoff.lndDate = qs("#sign_lndDate").value;
+      // other
+      d.notes = qs("#notes").value.trim();
+      d.nextReviewDate = qs("#nextReviewDate").value;
+      return d;
+    }
+
+    function saveToStorage(d) {
+      if (!autosaveEnabled) return;
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); } catch {}
+    }
+
+    function validate(d) {
+      let ok = true;
+      // reset errors
+      qs("#err_title").classList.add("hidden");
+      qs("#err_length").classList.add("hidden");
+      qs("#err_objectives").classList.add("hidden");
+      // required
+      if (!d.identifiers.title) {
+        qs("#err_title").textContent = "Required";
+        qs("#err_title").classList.remove("hidden");
+        ok = false;
+      }
+      if (!d.identifiers.length) {
+        qs("#err_length").textContent = "Required";
+        qs("#err_length").classList.remove("hidden");
+        ok = false;
+      }
+      if (!Array.isArray(d.objectives) || d.objectives.length < 1 || d.objectives.some(o => !o.text)) {
+        qs("#err_objectives").textContent = "Add at least one objective";
+        qs("#err_objectives").classList.remove("hidden");
+        ok = false;
+      }
+      // changes: if any rows exist, each must have description
+      qsa('#changesBody tr').forEach((tr, i) => {
+        const desc = tr.querySelector('input[data-field="description"]').value.trim();
+        const err = tr.querySelector(`[data-err="desc-${i}"]`);
+        if (!desc) { err.textContent = "Describe the change"; err.classList.remove("hidden"); ok = false; }
+        else err.classList.add("hidden");
+      });
+      return ok;
+    }
+
+    // --- Event wiring ---
+    function wireEvents() {
+      // global actions
+      qs("#printBtn")?.addEventListener("click", () => window.print());
+      qs("#downloadBtn")?.addEventListener("click", downloadJSON);
+      qs("#downloadBtn2")?.addEventListener("click", downloadJSON);
+      qs("#clearBtn")?.addEventListener("click", clearForm);
+      qs("#clearBtn2")?.addEventListener("click", clearForm);
+      const doValidate = () => {
+        const d = getFormData();
+        const ok = validate(d);
+        alert(ok ? "Form validated. Use 'Download JSON' or 'Print' to export." : "Please fix the highlighted issues.");
+        if (ok) saveToStorage(d);
+      };
+      qs("#validateBtn")?.addEventListener("click", doValidate);
+      qs("#validateBtn2")?.addEventListener("click", doValidate);
+
+      // objectives
+      qs("#addObjective")?.addEventListener("click", () => {
+        data.objectives.push({ text: "" });
+        renderObjectives(data.objectives);
+        // focus the new input so it's obvious
+        const inputs = qsa("#objectivesList input");
+        inputs[inputs.length - 1]?.focus();
+        saveToStorage(getFormData());
+      });
+      qs("#objectivesList")?.addEventListener("click", (e) => {
+        if (e.target.classList.contains("removeObjective")) {
+          const idx = Array.from(qs("#objectivesList").children).indexOf(e.target.closest("div"));
+          data.objectives.splice(idx, 1);
+          if (data.objectives.length === 0) data.objectives.push({ text: "" });
+          renderObjectives(data.objectives);
+          saveToStorage(getFormData());
+        }
+      });
+      qs("#objectivesList")?.addEventListener("input", () => saveToStorage(getFormData()));
+
+      // changes
+      qs("#addChange")?.addEventListener("click", () => {
+        data.changes.push({ description: "", owner: "", due: "", comments: "", status: "Proposed" });
+        renderChanges(data.changes);
+        // focus description of the new row
+        const rows = qsa("#changesBody tr");
+        rows[rows.length - 1]?.querySelector('input[data-field="description"]')?.focus();
+        saveToStorage(getFormData());
+      });
+      qs("#changesBody")?.addEventListener("click", (e) => {
+        if (e.target.classList.contains("removeChange")) {
+          const row = e.target.closest("tr");
+          const idx = Array.from(qs("#changesBody").children).indexOf(row);
+          data.changes.splice(idx, 1);
+          if (data.changes.length === 0) data.changes.push({ description: "", owner: "", due: "", comments: "", status: "Proposed" });
+          renderChanges(data.changes);
+          saveToStorage(getFormData());
+        }
+      });
+      qs("#changesBody")?.addEventListener("input", () => saveToStorage(getFormData()));
+      qs("#changesBody")?.addEventListener("change", () => saveToStorage(getFormData()));
+
+      // generic inputs
+      qsa("input, textarea, select").forEach(el => {
+        el.addEventListener("input", () => saveToStorage(getFormData()));
+        el.addEventListener("change", () => saveToStorage(getFormData()));
+      });
+    }
+
+    function downloadJSON() {
+      const d = getFormData();
+      const safeTitle = (d.identifiers.title || "existing-course-review").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const blob = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = safeTitle + ".json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearForm() {
+      if (!confirm("Clear all data?")) return;
+      setFormFromData(deepClone(defaultData));
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    }
+
+    // --- Init ---
+    (function init() {
+      // Prepare base UI first so buttons always work
+      setFormFromData(deepClone(defaultData));
+      autosaveEnabled = true;
+
+      // Resume modal if draft present (with <dialog> fallback)
+      if (hasSavedDraft()) {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const draft = parseStoredForm(raw);
+        const dlg = qs("#resumeDialog");
+
+        // If <dialog> unsupported, use a simple confirm() fallback
+        const resumeText = draft?.identifiers?.title ? `Saved title: ${draft.identifiers.title}` : "A saved draft was found.";
+        const openDialog = () => {
+          qs("#resumeInfo").innerHTML = draft?.identifiers?.title ? `<p><span class="font-medium text-gray-800">Saved title:</span> ${draft.identifiers.title}</p>` : "";
+          dlg.showModal();
+          dlg.addEventListener("close", () => {
+            if (dlg.returnValue === "resume") {
+              setFormFromData(draft);
+            } else {
+              setFormFromData(deepClone(defaultData));
+              try { localStorage.removeItem(STORAGE_KEY); } catch {}
+            }
+          }, { once: true });
+        };
+
+        if (dlg && typeof dlg.showModal === "function") {
+          openDialog();
+        } else {
+          // Simple fallback: confirm resume or new
+          const resume = confirm(`${resumeText}\n\nResume the saved draft? Click OK to resume, Cancel for a new form.`);
+          if (resume) setFormFromData(draft);
+          else { setFormFromData(deepClone(defaultData)); try { localStorage.removeItem(STORAGE_KEY); } catch {} }
+        }
+      }
+
+      wireEvents();
+    })();
+  </script>
+</body>
+</html>
